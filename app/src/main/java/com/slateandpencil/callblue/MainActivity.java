@@ -1,6 +1,7 @@
 package com.slateandpencil.callblue;
 
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -18,6 +19,7 @@ import android.widget.Button;
 import android.widget.Toast;
 
 import java.util.Date;
+import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -81,6 +83,15 @@ public class MainActivity extends AppCompatActivity {
 
     //Method to start the service
     public void startService() {
+        Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
+// If there are paired devices
+        if (pairedDevices.size() > 0) {
+            // Loop through paired devices
+            for (BluetoothDevice device : pairedDevices) {
+                // Add the name and address to an array adapter to show in a ListView
+                Log.e("Device:",device.getName()+':'+device.getAddress());
+            }
+        }
         startService(new Intent(getBaseContext(), MyService.class));
     }
 
