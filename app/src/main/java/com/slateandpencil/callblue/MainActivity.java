@@ -1,40 +1,60 @@
 package com.slateandpencil.callblue;
 
+import android.bluetooth.BluetoothAdapter;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.telephony.PhoneStateListener;
+import android.telephony.TelephonyManager;
+import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
+import android.widget.Toast;
+
+import java.util.Date;
 
 public class MainActivity extends AppCompatActivity {
 
+    private int REQUEST_ENABLE_BT = 20;
+    BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+
+    /*private CallStateListener callStateListener;
+    TelephonyManager tm;*/
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        Button start=(Button)findViewById(R.id.start);
-        Button stop=(Button)findViewById(R.id.stop);
+        Button start = (Button) findViewById(R.id.start);
+        Button stop = (Button) findViewById(R.id.stop);
+        if (mBluetoothAdapter == null) {
+            // Device does not support Bluetooth
+        }
         start.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startService(v);
+                if (!mBluetoothAdapter.isEnabled()) {
+                    Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                    startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+                }
+                else {
+                    startService();
+                }
             }
         });
         stop.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                stopService(v);
+                stopService();
             }
         });
-
-        
     }
 
     @Override
@@ -60,12 +80,30 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //Method to start the service
-    public void startService(View view) {
+    public void startService() {
         startService(new Intent(getBaseContext(), MyService.class));
     }
 
     // Method to stop the service
-    public void stopService(View view) {
+    public void stopService() {
         stopService(new Intent(getBaseContext(), MyService.class));
+    }
+
+    @Override
+    protected void onActivityResult(int requestcode, int resultcode, Intent data) {
+        try {
+            super.onActivityResult(requestcode, resultcode, data);
+            if (requestcode == REQUEST_ENABLE_BT) {
+                if(resultcode==RESULT_OK) {
+                    startService();
+                }
+                else{
+                    Toast.makeText(MainActivity.this,"Permission Denied", Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
+        catch (Exception e){
+            Toast.makeText(MainActivity.this,e.toString(), Toast.LENGTH_SHORT).show();
+        }
     }
 }
