@@ -2,6 +2,7 @@ package com.slateandpencil.callblue;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -18,13 +19,24 @@ import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.Toast;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Date;
 import java.util.Set;
+import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 
     private int REQUEST_ENABLE_BT = 20;
     BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+    private static final UUID MY_UUID =
+            UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+    private static String address = "20:14:05:08:13:38";
+    private BluetoothSocket btSocket = null;
+    private OutputStream outStream = null;
+    String TAG="Error";
+
+
 
     /*private CallStateListener callStateListener;
     TelephonyManager tm;*/
@@ -39,6 +51,38 @@ public class MainActivity extends AppCompatActivity {
         if (mBluetoothAdapter == null) {
             // Device does not support Bluetooth
         }
+        //to connet and send to device
+        checkBTState();
+        Log.e(TAG, "...In onResume - Attempting client connect...");
+        BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
+        try {
+            btSocket = device.createRfcommSocketToServiceRecord(MY_UUID);
+            Log.e(TAG,"CLient Connected");
+        } catch (IOException e) {
+            errorExit("Fatal Error", "In onResume() and socket create failed: " + e.getMessage() + ".");
+        }
+        mBluetoothAdapter.cancelDiscovery();
+        Log.e(TAG, "...Connecting to Remote...");
+        try {
+            btSocket.connect();
+            Log.e(TAG, "...Connection established and data link opened...");
+        } catch (IOException e) {
+            try {
+                btSocket.close();
+            } catch (IOException e2) {
+                errorExit("Fatal Error", "In onResume() and unable to close socket during connection failure" + e2.getMessage() + ".");
+            }
+        }
+        Log.e(TAG, "...Creating Socket...");
+
+        try {
+            outStream = btSocket.getOutputStream();
+            Log.e(TAG,"Ouput stream created");
+            sendData("1");
+        } catch (IOException e) {
+            errorExit("Fatal Error", "In onResume() and output stream creation failed:" + e.getMessage() + ".");
+        }
+        //trnasimiiosn ends here
         start.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -47,17 +91,21 @@ public class MainActivity extends AppCompatActivity {
                     startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
                 }
                 else {
-                    startService();
+                    //startService();
+                    sendData("1");
                 }
             }
         });
         stop.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                stopService();
+                sendData("0");
+                //stopService();
             }
         });
     }
+
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -83,7 +131,7 @@ public class MainActivity extends AppCompatActivity {
 
     //Method to start the service
     public void startService() {
-        Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
+        /*Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
 // If there are paired devices
         if (pairedDevices.size() > 0) {
             // Loop through paired devices
@@ -91,13 +139,121 @@ public class MainActivity extends AppCompatActivity {
                 // Add the name and address to an array adapter to show in a ListView
                 Log.e("Device:",device.getName()+':'+device.getAddress());
             }
-        }
-        startService(new Intent(getBaseContext(), MyService.class));
+        }*/
+        //startService(new Intent(getBaseContext(), MyService.class));
     }
 
     // Method to stop the service
     public void stopService() {
         stopService(new Intent(getBaseContext(), MyService.class));
+    }
+
+    //@Override
+    /*public void onResume() {
+        super.onResume();
+
+        Log.e(TAG, "...In onResume - Attempting client connect...");
+
+        //Set up a pointer to the remote node using it's address.
+        BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
+
+        // Two things are needed to make a connection:
+        //   A MAC address, which we got above.
+        //   A Service ID or UUID.  In this case we are using the
+        //     UUID for SPP.
+        try {
+            btSocket = device.createRfcommSocketToServiceRecord(MY_UUID);
+            Log.e(TAG,"CLient Connected");
+        } catch (IOException e) {
+            errorExit("Fatal Error", "In onResume() and socket create failed: " + e.getMessage() + ".");
+        }
+
+        // Discovery is resource intensive.  Make sure it isn't going on
+        // when you attempt to connect and pass your message.
+        mBluetoothAdapter.cancelDiscovery();
+
+        // Establish the connection.  This will block until it connects.
+        Log.e(TAG, "...Connecting to Remote...");
+        try {
+            btSocket.connect();
+            Log.e(TAG, "...Connection established and data link opened...");
+        } catch (IOException e) {
+            try {
+                btSocket.close();
+            } catch (IOException e2) {
+                errorExit("Fatal Error", "In onResume() and unable to close socket during connection failure" + e2.getMessage() + ".");
+            }
+        }
+
+        // Create a data stream so we can talk to server.
+        Log.e(TAG, "...Creating Socket...");
+
+        try {
+            outStream = btSocket.getOutputStream();
+            Log.e(TAG,"Ouput stream created");
+            sendData("1");
+        } catch (IOException e) {
+            errorExit("Fatal Error", "In onResume() and output stream creation failed:" + e.getMessage() + ".");
+        }
+    }*/
+
+    /*@Override
+    public void onPause() {
+        super.onPause();
+
+        Log.e(TAG, "...In onPause()...");
+
+        if (outStream != null) {
+            try {
+                outStream.flush();
+            } catch (IOException e) {
+                errorExit("Fatal Error", "In onPause() and failed to flush output stream: " + e.getMessage() + ".");
+            }
+        }
+
+        try     {
+            btSocket.close();
+        } catch (IOException e2) {
+            errorExit("Fatal Error", "In onPause() and failed to close socket." + e2.getMessage() + ".");
+        }
+    }*/
+
+    private void checkBTState() {
+        // Check for Bluetooth support and then check to make sure it is turned on
+
+        // Emulator doesn't support Bluetooth and will return null
+        if(mBluetoothAdapter==null) {
+            errorExit("Fatal Error", "Bluetooth Not supported. Aborting.");
+        } else {
+            if (mBluetoothAdapter.isEnabled()) {
+                Log.e(TAG, "...Bluetooth is enabled...");
+            } else {
+                //Prompt user to turn on Bluetooth
+                Intent enableBtIntent = new Intent(mBluetoothAdapter.ACTION_REQUEST_ENABLE);
+                startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+            }
+        }
+    }
+
+    private void errorExit(String title, String message){
+        Toast msg = Toast.makeText(getBaseContext(),
+                title + " - " + message, Toast.LENGTH_SHORT);
+        msg.show();
+        finish();
+    }
+
+    private void sendData(String message) {
+        byte[] msgBuffer = message.getBytes();
+        Log.e(TAG,msgBuffer+"");
+
+        Log.e(TAG, "...Sending data: " + message + "...");
+
+        try {
+            outStream.write(msgBuffer);
+        } catch (IOException e) {
+            String msg = "In onResume() and an exception occurred during write: " + e.getMessage();
+            errorExit("Fatal Error", msg);
+        }
     }
 
     @Override

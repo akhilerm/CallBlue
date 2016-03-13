@@ -1,6 +1,8 @@
 package com.slateandpencil.callblue;
 
 import android.app.Service;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
@@ -9,10 +11,17 @@ import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.widget.Toast;
 
+import java.io.OutputStream;
 import java.util.Date;
+import java.util.UUID;
 
 public class MyService extends Service {
-    //private CallHelper callHelper;
+    /*private static final UUID MY_UUID =
+            UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+    private static String address = "20:14:05:08:13:38";
+    private BluetoothAdapter btAdapter=BluetoothAdapter.getDefaultAdapter();
+    private BluetoothSocket btSocket = null;
+    private OutputStream outStream = null;*/
     public MyService() {
     }
 
@@ -25,9 +34,10 @@ public class MyService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         // Let it continue running until it is stopped.
+
         Toast.makeText(this, "Service Started", Toast.LENGTH_LONG).show();
-        TelephonyManager TelephonyMgr = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-        TelephonyMgr.listen(new TeleListener(), PhoneStateListener.LISTEN_CALL_STATE);
+        /*TelephonyManager TelephonyMgr = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        TelephonyMgr.listen(new TeleListener(), PhoneStateListener.LISTEN_CALL_STATE);*/
         return START_STICKY;
     }
 
