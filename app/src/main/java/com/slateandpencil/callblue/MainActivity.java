@@ -27,14 +27,9 @@ import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 
-    private int REQUEST_ENABLE_BT = 20;
     BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-    private static final UUID MY_UUID =
-            UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-    private static String address = "20:14:05:08:13:38";
-    private BluetoothSocket btSocket = null;
-    private OutputStream outStream = null;
-    String TAG="Error";
+    private int REQUEST_ENABLE_BT=20;
+
 
 
 
@@ -51,38 +46,6 @@ public class MainActivity extends AppCompatActivity {
         if (mBluetoothAdapter == null) {
             // Device does not support Bluetooth
         }
-        //to connet and send to device
-        checkBTState();
-        Log.e(TAG, "...In onResume - Attempting client connect...");
-        BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
-        try {
-            btSocket = device.createRfcommSocketToServiceRecord(MY_UUID);
-            Log.e(TAG,"CLient Connected");
-        } catch (IOException e) {
-            errorExit("Fatal Error", "In onResume() and socket create failed: " + e.getMessage() + ".");
-        }
-        mBluetoothAdapter.cancelDiscovery();
-        Log.e(TAG, "...Connecting to Remote...");
-        try {
-            btSocket.connect();
-            Log.e(TAG, "...Connection established and data link opened...");
-        } catch (IOException e) {
-            try {
-                btSocket.close();
-            } catch (IOException e2) {
-                errorExit("Fatal Error", "In onResume() and unable to close socket during connection failure" + e2.getMessage() + ".");
-            }
-        }
-        Log.e(TAG, "...Creating Socket...");
-
-        try {
-            outStream = btSocket.getOutputStream();
-            Log.e(TAG,"Ouput stream created");
-            sendData("1");
-        } catch (IOException e) {
-            errorExit("Fatal Error", "In onResume() and output stream creation failed:" + e.getMessage() + ".");
-        }
-        //trnasimiiosn ends here
         start.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -91,16 +54,14 @@ public class MainActivity extends AppCompatActivity {
                     startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
                 }
                 else {
-                    //startService();
-                    sendData("1");
+                    startService();
                 }
             }
         });
         stop.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                sendData("0");
-                //stopService();
+                stopService();
             }
         });
     }
@@ -131,16 +92,7 @@ public class MainActivity extends AppCompatActivity {
 
     //Method to start the service
     public void startService() {
-        /*Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
-// If there are paired devices
-        if (pairedDevices.size() > 0) {
-            // Loop through paired devices
-            for (BluetoothDevice device : pairedDevices) {
-                // Add the name and address to an array adapter to show in a ListView
-                Log.e("Device:",device.getName()+':'+device.getAddress());
-            }
-        }*/
-        //startService(new Intent(getBaseContext(), MyService.class));
+        startService(new Intent(getBaseContext(), MyService.class));
     }
 
     // Method to stop the service
@@ -218,7 +170,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }*/
 
-    private void checkBTState() {
+   /* private void checkBTState() {
         // Check for Bluetooth support and then check to make sure it is turned on
 
         // Emulator doesn't support Bluetooth and will return null
@@ -233,28 +185,9 @@ public class MainActivity extends AppCompatActivity {
                 startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
             }
         }
-    }
+    }*/
 
-    private void errorExit(String title, String message){
-        Toast msg = Toast.makeText(getBaseContext(),
-                title + " - " + message, Toast.LENGTH_SHORT);
-        msg.show();
-        finish();
-    }
 
-    private void sendData(String message) {
-        byte[] msgBuffer = message.getBytes();
-        Log.e(TAG,msgBuffer+"");
-
-        Log.e(TAG, "...Sending data: " + message + "...");
-
-        try {
-            outStream.write(msgBuffer);
-        } catch (IOException e) {
-            String msg = "In onResume() and an exception occurred during write: " + e.getMessage();
-            errorExit("Fatal Error", msg);
-        }
-    }
 
     @Override
     protected void onActivityResult(int requestcode, int resultcode, Intent data) {
