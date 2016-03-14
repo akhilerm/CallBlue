@@ -18,6 +18,12 @@ import java.util.Date;
 import java.util.UUID;
 
 public class MyService extends Service {
+    private BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+    private final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+    private final String address = "20:14:05:08:13:38";
+    private BluetoothSocket btSocket = null;
+    private OutputStream outStream = null;
+    String TAG="Error";
 
     public MyService() {
     }
@@ -33,47 +39,40 @@ public class MyService extends Service {
         // Let it continue running until it is stopped.
 
         Toast.makeText(this, "Service Started", Toast.LENGTH_LONG).show();
-        TelephonyManager TelephonyMgr = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-        TelephonyMgr.listen(new TeleListener(), PhoneStateListener.LISTEN_CALL_STATE);
+        if (mBluetoothAdapter.isEnabled()) {
+            TelephonyManager TelephonyMgr = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+            TelephonyMgr.listen(new TeleListener(), PhoneStateListener.LISTEN_CALL_STATE);
+        }
         return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-       /* if (outStream != null) {
-            try {
-                outStream.flush();
-            } catch (IOException e) {
-                errorExit("Fatal Error", "In onPause() and failed to flush output stream: " + e.getMessage() + ".");
-            }
-        }
-
-        try     {
-            btSocket.close();
-        } catch (IOException e2) {
-            errorExit("Fatal Error", "In onPause() and failed to close socket." + e2.getMessage() + ".");
-        }*/
+        resetConnection();
         Toast.makeText(this, "Service Destroyed", Toast.LENGTH_LONG).show();
     }
 
     private void errorExit(String title, String message){
-        Log.e("Exception", title + ':' + message);
+        Log.e("Error Exit", title + ':' + message);
     }
-
-    private void sendData(String message) {
+    private void resetConnection() {
+        Log.e(TAG,"Going to reset");
+        if (outStream != null) {
+            try {outStream.close();} catch (Exception e) {errorExit("Fatal Error", "Unable to close stream during connection failure" + e.getMessage() + ".");}
+            outStream = null;
+        }
+        if (btSocket != null) {
+            try {btSocket.close();} catch (Exception e) {errorExit("Fatal Error", "Unable to close socket during connection failure" + e.getMessage() + ".");}
+            btSocket = null;
+        }
+        Log.e(TAG,"Connection reset");
 
     }
 
     class TeleListener extends PhoneStateListener {
         public void onCallStateChanged(int state, String incomingNumber) {
             super.onCallStateChanged(state, incomingNumber);
-            BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-            UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-            String address = "20:14:05:08:13:38";
-            BluetoothSocket btSocket = null;
-            OutputStream outStream = null;
-            String TAG="Error";
             String message="1";
             if(state==TelephonyManager.CALL_STATE_RINGING){
                 BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
@@ -81,7 +80,7 @@ public class MyService extends Service {
                     btSocket = device.createRfcommSocketToServiceRecord(MY_UUID);
                     Log.e(TAG,"CLient Connected");
                 } catch (IOException e) {
-                    errorExit("Fatal Error", "In onResume() and socket create failed: " + e.getMessage() + ".");
+                    errorExit("Fatal Error", "Socket create failed: " + e.getMessage() + ".");
                 }
                 mBluetoothAdapter.cancelDiscovery();
                 Log.e(TAG, "...Connecting to Remote...");
@@ -92,7 +91,7 @@ public class MyService extends Service {
                     try {
                         btSocket.close();
                     } catch (IOException e2) {
-                        errorExit("Fatal Error", "In onResume() and unable to close socket during connection failure" + e2.getMessage() + ".");
+                        errorExit("Fatal Error", "Unable to close socket during connection failure" + e2.getMessage() + ".");
                     }
                 }
                 Log.e(TAG, "...Creating Socket...");
@@ -109,18 +108,13 @@ public class MyService extends Service {
                         outStream.write(msgBuffer);
                         Log.e(TAG,"Message send");
                     } catch (IOException e) {
-                        String msg = "In onResume() and an exception occurred during write: " + e.getMessage();
-                        errorExit("Fatal Error", msg);
+                        errorExit("Fatal Error","Exception occurred during write: " + e.getMessage());
                     }
                 } catch (IOException e) {
-                    errorExit("Fatal Error", "In onResume() and output stream creation failed:" + e.getMessage() + ".");
-                }
-                try {
-                    btSocket.close();
-                } catch (IOException e2) {
-                    errorExit("Fatal Error", "In onResume() and unable to close socket during connection failure" + e2.getMessage() + ".");
+                    errorExit("Fatal Error", "Output stream creation failed:" + e.getMessage() + ".");
                 }
                 //trnasimiiosn ends here
+                resetConnection();
                 Toast.makeText(MyService.this,"Ringing", Toast.LENGTH_SHORT).show();
             }
         }
